@@ -1,0 +1,10 @@
+{{- if .Values.deploy }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "scriptapp.fullname" . }}-push
+  labels: {{- include "scriptapp.labels" . | nindent 4 }}
+data:
+  push.sh: |
+{{ .Files.Get "files/push.sh" | indent 4 }}
+{{- end }}

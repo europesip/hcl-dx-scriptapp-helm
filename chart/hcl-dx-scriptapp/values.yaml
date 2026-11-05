@@ -1,0 +1,63 @@
+# hcl-dx-scriptapp: deploys ONE Script Application to HCL DX with DXClient.
+# Every "helm install" / "helm upgrade" runs a Job (Helm hook) that pushes the app into WCM:
+# the first time it creates it, the next times it updates the same content (same WCM ID).
+
+# Run the push. Set it to false in environments that receive the app by WCM syndication
+# (for example production): pushing there too would create a second, different content item.
+deploy: true
+
+# The Script Application to push
+scriptApp:
+  # WCM content name: the key that makes the push an update instead of a new item. Do not change
+  # it after the first install, or DX gets a second app.
+  name: europesip-hello-dx
+  title: Hello DX
+  siteArea: "Script Application Library/Script Applications/"
+  mainHtmlFile: index.html
+
+# OCI image that only carries the BUILT app (the "dist" folder of npm run build) in "path".
+# Built by CI (see app/Dockerfile); its tag is the app version. Needs "cp" (busybox base).
+bundle:
+  image: ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.0
+  path: /app
+  pullPolicy: IfNotPresent
+
+# HCL DXClient container image (public in HCL Harbor, no login): use the tag of your DX CF level.
+dxclient:
+  image: hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404
+  pullPolicy: IfNotPresent
+  # DXClient asks to accept its license (HCL "License agreement for non-warranted programs").
+  # Read it (run the image with "dxclient accept-license") and set true to accept it. The Job
+  # refuses to run while it is false.
+  acceptLicense: false
+
+# Target DX
+dx:
+  # REQUIRED. Host name of DX as the Job reaches it, normally the public one (e.g. dx.example.com)
+  host: ""
+  protocol: https
+  port: 443
+  contentHandlerPath: /wps/mycontenthandler
+  # REQUIRED. Existing Secret with the keys "username" and "password" of a DX user with Editor
+  # access to the Script Application Library. Use a technical user, not wpsadmin.
+  credentialsSecret: ""
+  # Optional: Secret with the CA (key "ca.crt") of the DX certificate, if it is self-signed or
+  # from a private CA. Without it, the Job only trusts public CAs.
+  caSecret: ""
+  # Lab only: do not verify the DX certificate at all. Prefer caSecret.
+  insecureSkipTLSVerify: false
+  virtualPortalContext: ""   # push into a virtual portal (its context)
+  projectContext: ""         # push into a WCM project instead of publishing at once
+
+job:
+  # Seconds to wait for DX to answer before pushing (DX may still be starting on a first install)
+  waitForDxSeconds: 600
+  backoffLimit: 1
+  activeDeadlineSeconds: 1200
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  imagePullSecrets: []       # e.g. [{ name: regcred }] if the bundle image is private
+  nodeSelector: {}
+  tolerations: []
+  podAnnotations: {}

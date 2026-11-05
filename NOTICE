@@ -1,0 +1,14 @@
+Script Applications for HCL DX, deployed with Helm
+Copyright 2026 EUROPESIP (https://www.europesip.com)
+
+Developed by EUROPESIP and released as open source under the Apache License, Version 2.0 (see
+LICENSE). Under section 4(d) of the licence, any redistribution or derivative work must keep this
+NOTICE file and the attribution to EUROPESIP as the original author.
+
+The sample app in app/ starts from the react-ts template of @hcl-software/create-dx-script-app,
+Copyright 2025 HCL America Inc., licensed under the Apache License, Version 2.0; app/deploy.cjs is
+that template's file, unchanged.
+
+This repository is not HCL software. HCL DXClient is used from HCL's public container image under
+its own licence and is not redistributed here. React, Vite and the base images keep their own
+licences. HCL, Digital Experience and other product names are trademarks of their respective owners.

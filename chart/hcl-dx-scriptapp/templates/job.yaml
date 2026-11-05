@@ -1,0 +1,108 @@
+{{- if .Values.deploy }}
+{{- $host := required "dx.host is required (host name of DX)" .Values.dx.host }}
+{{- $secret := required "dx.credentialsSecret is required (Secret with username/password)" .Values.dx.credentialsSecret }}
+{{- if not .Values.dxclient.acceptLicense }}
+{{- fail "dxclient.acceptLicense must be true: read the DXClient license and accept it (see values.yaml)" }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "scriptapp.fullname" . }}-push
+  labels: {{- include "scriptapp.labels" . | nindent 4 }}
+  annotations:
+    # Runs after every install/upgrade. The previous Job is deleted when a new one starts; the last
+    # one stays, so "kubectl logs job/..." shows what happened.
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels: {{- include "scriptapp.labels" . | nindent 8 }}
+      {{- with .Values.job.podAnnotations }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      {{- with .Values.job.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.job.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.job.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      volumes:
+        - name: app
+          emptyDir: {}
+        - name: push
+          configMap:
+            name: {{ include "scriptapp.fullname" . }}-push
+            defaultMode: 0555
+        {{- if .Values.dx.caSecret }}
+        - name: dx-ca
+          secret:
+            secretName: {{ .Values.dx.caSecret }}
+            items: [{ key: ca.crt, path: ca.crt }]
+        {{- end }}
+      initContainers:
+        # 1. Copy the built app out of the bundle image
+        - name: bundle
+          image: {{ .Values.bundle.image }}
+          imagePullPolicy: {{ .Values.bundle.pullPolicy }}
+          command: ["sh", "-c", "cp -r {{ .Values.bundle.path }}/. /work/app/ && ls -lR /work/app"]
+          securityContext: &sc
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: app, mountPath: /work/app }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+      containers:
+        # 2. Push it with DXClient
+        - name: dxclient
+          image: {{ .Values.dxclient.image }}
+          imagePullPolicy: {{ .Values.dxclient.pullPolicy }}
+          command: ["/push/push.sh"]
+          securityContext: *sc
+          env:
+            - { name: APP_DIR, value: /work/app }
+            - { name: DX_HOST, value: {{ $host | quote }} }
+            - { name: DX_PROTOCOL, value: {{ .Values.dx.protocol | quote }} }
+            - { name: DX_PORT, value: {{ .Values.dx.port | quote }} }
+            - { name: DX_CONTENT_HANDLER_PATH, value: {{ .Values.dx.contentHandlerPath | quote }} }
+            - { name: DX_VIRTUAL_PORTAL_CONTEXT, value: {{ .Values.dx.virtualPortalContext | quote }} }
+            - { name: DX_PROJECT_CONTEXT, value: {{ .Values.dx.projectContext | quote }} }
+            - { name: APP_NAME, value: {{ .Values.scriptApp.name | quote }} }
+            - { name: APP_TITLE, value: {{ .Values.scriptApp.title | quote }} }
+            - { name: APP_SITE_AREA, value: {{ .Values.scriptApp.siteArea | quote }} }
+            - { name: APP_MAIN_HTML, value: {{ .Values.scriptApp.mainHtmlFile | quote }} }
+            - { name: WAIT_FOR_DX_SECONDS, value: {{ .Values.job.waitForDxSeconds | quote }} }
+            - { name: ACCEPT_LICENSE, value: "true" }
+            - name: DX_USERNAME
+              valueFrom: { secretKeyRef: { name: {{ $secret }}, key: username } }
+            - name: DX_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ $secret }}, key: password } }
+            {{- if .Values.dx.caSecret }}
+            - { name: NODE_EXTRA_CA_CERTS, value: /dx-ca/ca.crt }
+            {{- end }}
+            {{- if .Values.dx.insecureSkipTLSVerify }}
+            - { name: NODE_TLS_REJECT_UNAUTHORIZED, value: "0" }
+            {{- end }}
+          volumeMounts:
+            - { name: app, mountPath: /work/app, readOnly: true }
+            - { name: push, mountPath: /push }
+            {{- if .Values.dx.caSecret }}
+            - { name: dx-ca, mountPath: /dx-ca, readOnly: true }
+            {{- end }}
+          resources: {{- toYaml .Values.job.resources | nindent 12 }}
+{{- end }}

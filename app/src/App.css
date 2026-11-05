@@ -1,0 +1,23 @@
+/* Every rule is scoped to the app (.ehd): the Script Application shares the page with the DX
+   theme, so global selectors (:root, body, h1, a, button...) would restyle the whole portal. */
+.ehd {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  color: #1f2937;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px 24px;
+  max-width: 720px;
+}
+.ehd-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ehd h2 { margin: 0; font-size: 1.5rem; }
+.ehd h3 { margin: 18px 0 6px; font-size: 1.05rem; }
+.ehd-version { font-size: 0.85rem; color: #0f62fe; background: #e8f0ff; border-radius: 999px; padding: 2px 10px; }
+.ehd-user { margin: 10px 0 0; }
+.ehd-count { color: #6b7280; font-weight: 400; }
+.ehd-list { margin: 0; padding-left: 20px; columns: 2; }
+.ehd-error { color: #b42318; background: #fef3f2; border-radius: 8px; padding: 8px 12px; }
+.ehd-foot { margin-top: 16px; font-size: 0.8rem; color: #6b7280; }
+.ehd-foot a { color: #0f62fe; }
+@media (max-width: 520px) { .ehd-list { columns: 1; } }

@@ -1,0 +1,107 @@
+# Builds and publishes the two artifacts of this repository:
+#   - the bundle image of the Script Application (app/) -> ghcr.io/<repo>/europesip-hello-dx
+#   - the Helm chart (chart/hcl-dx-scriptapp)            -> oci://ghcr.io/<owner>/charts
+#
+#   pull request -> build, lint and test only
+#   push to main -> image :main and :sha-<commit>
+#   tag v1.2.3   -> image :1.2.3 (must match app/package.json) and the chart (version from Chart.yaml)
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/europesip-hello-dx
+  CHARTS: oci://ghcr.io/${{ github.repository_owner }}/charts
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v=$(jq -r .version app/package.json)
+          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "tag ${GITHUB_REF_NAME} != app/package.json $v"; exit 1; }
+
+      - name: Build for the test
+        uses: docker/build-push-action@v7
+        with:
+          context: app
+          load: true
+          tags: bundle:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test (what the chart's Job needs from the image)
+        run: |
+          docker run --rm bundle:test sh -c '
+            set -e
+            test -f /app/index.html
+            ls /app/assets/*.js /app/assets/*.css
+            big=$(find /app -type f -size +4500k); [ -z "$big" ] || { echo "files over 4.5 MB: $big"; exit 1; }
+            id -u; du -sh /app'
+
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=semver,pattern={{version}}
+          labels: |
+            org.opencontainers.image.title=europesip-hello-dx
+            org.opencontainers.image.description=Hello DX: sample Script Application for HCL DX Compose (bundle image)
+            org.opencontainers.image.vendor=EUROPESIP
+
+      - uses: docker/login-action@v4
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish (amd64 + arm64)
+        uses: docker/build-push-action@v7
+        with:
+          context: app
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+
+      - name: Lint and render
+        run: |
+          C=chart/hcl-dx-scriptapp
+          helm lint $C --set dx.host=dx.example.com --set dx.credentialsSecret=dx --set dxclient.acceptLicense=true
+          helm template t $C --set dx.host=dx.example.com --set dx.credentialsSecret=dx --set dxclient.acceptLicense=true > /dev/null
+          # Must refuse to render without the license, the host or the credentials
+          ! helm template t $C --set dx.host=x --set dx.credentialsSecret=s 2>/dev/null
+          ! helm template t $C --set dxclient.acceptLicense=true 2>/dev/null
+          sh -n $C/files/push.sh
+
+      - name: Publish (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+          helm package chart/hcl-dx-scriptapp
+          helm push hcl-dx-scriptapp-*.tgz "$CHARTS"

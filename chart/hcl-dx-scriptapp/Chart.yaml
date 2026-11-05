@@ -1,0 +1,15 @@
+apiVersion: v2
+name: hcl-dx-scriptapp
+description: >-
+  Deploys a Script Application to HCL DX Compose (or DX 9.5 on Kubernetes) from Helm: a Job that
+  runs HCL DXClient and pushes the app, taken from a small OCI "bundle" image, into WCM.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+home: https://github.com/europesip/hcl-dx-scriptapp-helm
+sources:
+  - https://github.com/europesip/hcl-dx-scriptapp-helm
+keywords: [hcl, dx, digital-experience, script-application, wcm, dxclient]
+maintainers:
+  - name: EUROPESIP
+    url: https://www.europesip.com
