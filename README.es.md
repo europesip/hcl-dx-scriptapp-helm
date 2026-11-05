@@ -19,7 +19,7 @@ Contiene:
 | [app/Dockerfile](app/Dockerfile) | La **imagen del bundle**: una imagen mínima que solo lleva la aplicación compilada |
 | [chart/hcl-dx-scriptapp](chart/hcl-dx-scriptapp) | El **chart de Helm**: un Job que sube la aplicación a DX con DXClient |
 
-![Hello DX en HCL DX Compose CF239](docs/hello-dx.png)
+![Hello DX en HCL DX Compose CF239](docs/hello-dx.es.png)
 
 La misma página muestra 23 bibliotecas a `wpsadmin` y 21 a un usuario normal del LDAP de los labs:
 la app no tiene lógica de permisos propia, DX aplica los del usuario que ha iniciado sesión.
@@ -115,11 +115,20 @@ falla si falla el push.
 Applications* → **Hello DX**, y publica. Muestra tu nombre, las bibliotecas de WCM que puedes leer y
 la versión desplegada.
 
-**7. Actualizarla:** publica una imagen de bundle nueva (versión nueva de la app) y haz upgrade:
+**7. Actualizarla.** Una versión nueva del chart trae por defecto una versión nueva de la app:
+
+```bash
+helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version <versión nueva del chart> \
+  -n dx-shared --reset-then-reuse-values
+```
+
+`--reset-then-reuse-values` (Helm 3.14+ y 4) conserva tus `--set` y toma los valores por defecto del
+chart nuevo. Con `--reuse-values` a secas se conservan también los valores por defecto **del chart
+anterior**, y la app no cambiaría. Para subir una versión concreta de la app con el mismo chart:
 
 ```bash
 helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.3 -n dx-shared \
-  --reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:<new version>
+  --reset-then-reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:<new version>
 ```
 
 **8. Desinstalar:** `helm uninstall hello-dx -n dx-shared` borra el chart, **no la app de WCM**

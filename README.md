@@ -113,11 +113,20 @@ and fails if the push fails.
 **Hello DX**, and publish. It shows your name, the WCM libraries you can read and the deployed
 version.
 
-**7. Update it:** publish a new bundle image (new app version) and upgrade:
+**7. Update it.** A new chart version brings a new app version by default:
+
+```bash
+helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version <new chart version> \
+  -n dx-shared --reset-then-reuse-values
+```
+
+`--reset-then-reuse-values` (Helm 3.14+ and 4) keeps your `--set` values and takes the new chart's
+defaults. Plain `--reuse-values` keeps the **old chart's** defaults too, so the app would not
+change. To push a specific app version with the same chart:
 
 ```bash
 helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.3 -n dx-shared \
-  --reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:<new version>
+  --reset-then-reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:<new version>
 ```
 
 **8. Uninstall:** `helm uninstall hello-dx -n dx-shared` removes the chart, **not the app in WCM**
