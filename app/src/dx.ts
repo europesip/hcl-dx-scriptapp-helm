@@ -6,8 +6,9 @@
 const CONTENT_HANDLER = '/wps/mycontenthandler'
 
 export interface DxUser {
-  id: string            // distinguished name, e.g. uid=andres,ou=people,dc=...
-  displayName: string   // cn, or uid when there is no cn
+  id: string                  // distinguished name, e.g. uid=andres,ou=people,dc=...
+  displayName: string         // cn, or uid when there is no cn
+  preferredLanguage: string   // the user's language in the DX profile ("" when not set)
 }
 
 export interface WcmLibrary {
@@ -28,7 +29,7 @@ export async function getCurrentUser(): Promise<DxUser> {
       .find((a) => a.getAttribute('name') === name)
       ?.textContent?.trim() || ''
   const id = xml.getElementsByTagNameNS('*', 'title')[0]?.textContent?.trim() || ''
-  return { id, displayName: attr('cn') || attr('uid') || id }
+  return { id, displayName: attr('cn') || attr('uid') || id, preferredLanguage: attr('preferredLanguage') }
 }
 
 // WCM REST v2 returns some texts as a plain string and others as {lang, value} (seen on CF239 in the

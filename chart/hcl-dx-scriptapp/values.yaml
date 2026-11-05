@@ -18,7 +18,7 @@ scriptApp:
 # OCI image that only carries the BUILT app (the "dist" folder of npm run build) in "path".
 # Built by CI (see app/Dockerfile); its tag is the app version. Needs "cp" (busybox base).
 bundle:
-  image: ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.3
+  image: ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.4
   path: /app
   pullPolicy: IfNotPresent
 

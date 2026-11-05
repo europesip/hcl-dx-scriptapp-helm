@@ -89,7 +89,7 @@ kubectl -n dx-shared run dxclient-license --rm -i --restart=Never --image=hclcr.
 upgrades it when it does, so the same command works the first time and every time after:
 
 ```bash
-helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.2 \
+helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.3 \
   -n dx-shared \
   --set dx.host=dx.example.com \
   --set dx.credentialsSecret=scriptapp-dx \
@@ -116,7 +116,7 @@ version.
 **7. Update it:** publish a new bundle image (new app version) and upgrade:
 
 ```bash
-helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.2 -n dx-shared \
+helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.3 -n dx-shared \
   --reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:<new version>
 ```
 
@@ -145,7 +145,7 @@ dxclient undeploy-scriptapplication --dxProtocol https --hostname dx.example.com
 | `scriptApp.name` | `europesip-hello-dx` | WCM content name: the key that makes a push an update. Do not change it after the first install |
 | `scriptApp.title` | `Hello DX` | Title shown in DX |
 | `scriptApp.siteArea` | `Script Application Library/Script Applications/` | Where it is created |
-| `bundle.image` | `ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.3` | The app to push |
+| `bundle.image` | `ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.4` | The app to push |
 | `dxclient.image` | `hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404` | DXClient, public in HCL Harbor |
 | `job.waitForDxSeconds` | `600` | How long to wait for DX before pushing |
 
@@ -186,6 +186,10 @@ The chart is generic: nothing in it is specific to Hello DX.
 - **WCM REST v2 returns some texts as a string and others as `{lang, value}`**, even in the same
   list (library titles on CF239). Read both forms (see `text()` in [app/src/dx.ts](app/src/dx.ts)):
   React fails on the object.
+- **Language:** the app speaks English or Spanish. It takes the user's `preferredLanguage` from the
+  DX profile, then the language DX chose for the page (`<html lang>`), then the browser. On DX
+  Compose users cannot edit their profile, so in practice it is the language DX resolved for the
+  page, which follows the browser.
 - **One instance per page** for Hello DX: it mounts on a fixed element ID. For several instances
   on the same page, use DX's namespace token in the element ID.
 

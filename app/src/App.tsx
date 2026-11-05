@@ -5,7 +5,7 @@
 //  "helm upgrade" really updated the app.
 import { useEffect, useState } from 'react'
 import { getCurrentUser, getWcmLibraries, type DxUser, type WcmLibrary } from './dx'
-import { t } from './i18n'
+import { texts } from './i18n'
 
 declare const __APP_VERSION__: string
 const REPO = 'https://github.com/europesip/hcl-dx-scriptapp-helm'
@@ -15,6 +15,7 @@ function App() {
   const [libraries, setLibraries] = useState<WcmLibrary[] | null>(null)
   const [userError, setUserError] = useState('')
   const [libError, setLibError] = useState('')
+  const t = texts(user?.preferredLanguage)
 
   useEffect(() => {
     getCurrentUser().then(setUser).catch((e) => setUserError(String(e.message || e)))
