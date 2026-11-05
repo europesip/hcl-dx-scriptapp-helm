@@ -91,7 +91,7 @@ kubectl -n dx-shared run dxclient-license --rm -i --restart=Never --image=hclcr.
 ya existe, así que el mismo comando vale para la primera vez y para todas las siguientes:
 
 ```bash
-helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.1 \
+helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.2 \
   -n dx-shared \
   --set dx.host=dx.example.com \
   --set dx.credentialsSecret=scriptapp-dx \
@@ -118,7 +118,7 @@ la versión desplegada.
 **7. Actualizarla:** publica una imagen de bundle nueva (versión nueva de la app) y haz upgrade:
 
 ```bash
-helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.1 -n dx-shared \
+helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.2 -n dx-shared \
   --reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:<new version>
 ```
 
@@ -147,7 +147,7 @@ dxclient undeploy-scriptapplication --dxProtocol https --hostname dx.example.com
 | `scriptApp.name` | `europesip-hello-dx` | Nombre del contenido en WCM: la clave que convierte un push en actualización. No lo cambies tras la primera instalación |
 | `scriptApp.title` | `Hello DX` | Título que se ve en DX |
 | `scriptApp.siteArea` | `Script Application Library/Script Applications/` | Dónde se crea |
-| `bundle.image` | `ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.2` | La app que se sube |
+| `bundle.image` | `ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.3` | La app que se sube |
 | `dxclient.image` | `hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404` | DXClient, público en el Harbor de HCL |
 | `job.waitForDxSeconds` | `600` | Cuánto esperar a DX antes del push |
 
