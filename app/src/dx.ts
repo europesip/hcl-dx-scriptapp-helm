@@ -31,6 +31,14 @@ export async function getCurrentUser(): Promise<DxUser> {
   return { id, displayName: attr('cn') || attr('uid') || id }
 }
 
+// WCM REST v2 returns some texts as a plain string and others as {lang, value} (seen on CF239 in the
+// same list of libraries): always read them through text(). React cannot render the object.
+type LocalizedText = string | { lang?: string; value?: string } | undefined
+
+function text(t: LocalizedText): string {
+  return typeof t === 'string' ? t : t?.value ?? ''
+}
+
 /** WCM libraries the user can read (WCM REST API v2). */
 export async function getWcmLibraries(limit = 100): Promise<WcmLibrary[]> {
   const res = await fetch(`${CONTENT_HANDLER}/wcmrest-v2/libraries?limit=${limit}`, {
@@ -39,9 +47,9 @@ export async function getWcmLibraries(limit = 100): Promise<WcmLibrary[]> {
   })
   if (!res.ok) throw new Error(`WCM libraries: HTTP ${res.status}`)
   const data = await res.json()
-  return (data['library-entries'] || []).map((l: { id: string; title: string; lastModified: string }) => ({
+  return (data['library-entries'] || []).map((l: { id: string; title: LocalizedText; lastModified: string }) => ({
     id: l.id,
-    title: l.title,
+    title: text(l.title),
     lastModified: l.lastModified,
   }))
 }

@@ -45,6 +45,11 @@ helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp 
 
 You need `kubectl` and `helm` (3.8+ or 4) against the cluster where DX runs, and a DX user.
 
+**No registry login is needed.** Everything is public: the chart and the bundle image on ghcr.io,
+and DXClient in the `dx-public` repository of HCL Harbor (unlike the DX charts and images, which
+need your `hclcr.io` credentials). If your cluster only pulls from a private mirror, copy the two
+images there and set `bundle.image`, `dxclient.image` and `job.imagePullSecrets`.
+
 **1. Credentials of a DX user** with Editor access to the *Script Application Library* (use a
 technical user, not `wpsadmin`, outside a lab). Any namespace works; the Job only talks to DX over
 HTTPS:
@@ -64,16 +69,22 @@ kubectl -n dx-shared create secret generic scriptapp-dx-ca --from-file=ca.crt=dx
 ```
 
 **3. Read the DXClient license** (an HCL license for non-warranted programs) and accept it with
-`dxclient.acceptLicense=true`: the chart refuses to install until you do. To read it:
+`dxclient.acceptLicense=true`: the chart refuses to install until you do. To read it, with Docker
+or, without it, in a throw-away pod:
 
 ```bash
 docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bin/dxclient accept-license
 ```
 
-**4. Install:**
+```bash
+kubectl -n dx-shared run dxclient-license --rm -i --restart=Never --image=hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 --command -- /dxclient/bin/dxclient accept-license
+```
+
+**4. Install.** `helm upgrade --install` installs the release when it does not exist yet and
+upgrades it when it does, so the same command works the first time and every time after:
 
 ```bash
-helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.0 \
+helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.1 \
   -n dx-shared \
   --set dx.host=dx.example.com \
   --set dx.credentialsSecret=scriptapp-dx \
@@ -100,8 +111,8 @@ version.
 **7. Update it:** publish a new bundle image (new app version) and upgrade:
 
 ```bash
-helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.0 -n dx-shared \
-  --reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.1
+helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.1 -n dx-shared \
+  --reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:<new version>
 ```
 
 **8. Uninstall:** `helm uninstall hello-dx -n dx-shared` removes the chart, **not the app in WCM**
@@ -129,7 +140,7 @@ dxclient undeploy-scriptapplication --dxProtocol https --hostname dx.example.com
 | `scriptApp.name` | `europesip-hello-dx` | WCM content name: the key that makes a push an update. Do not change it after the first install |
 | `scriptApp.title` | `Hello DX` | Title shown in DX |
 | `scriptApp.siteArea` | `Script Application Library/Script Applications/` | Where it is created |
-| `bundle.image` | `ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.0` | The app to push |
+| `bundle.image` | `ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.2` | The app to push |
 | `dxclient.image` | `hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404` | DXClient, public in HCL Harbor |
 | `job.waitForDxSeconds` | `600` | How long to wait for DX before pushing |
 
@@ -167,6 +178,9 @@ The chart is generic: nothing in it is specific to Hello DX.
 - **Same origin, no secrets.** The app calls DX with relative URLs (`/wps/mycontenthandler/...`):
   the browser sends the user's session cookie, and DX applies that user's permissions. Logic that
   needs secrets or privileges goes to a backend service, not to the Script Application.
+- **WCM REST v2 returns some texts as a string and others as `{lang, value}`**, even in the same
+  list (library titles on CF239). Read both forms (see `text()` in [app/src/dx.ts](app/src/dx.ts)):
+  React fails on the object.
 - **One instance per page** for Hello DX: it mounts on a fixed element ID. For several instances
   on the same page, use DX's namespace token in the element ID.
 

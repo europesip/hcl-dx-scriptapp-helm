@@ -46,6 +46,12 @@ helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp 
 
 Necesitas `kubectl` y `helm` (3.8+ o 4) contra el clúster donde corre DX, y un usuario de DX.
 
+**No hace falta hacer login en ningún registro.** Todo es público: el chart y la imagen del bundle
+en ghcr.io, y DXClient en el repositorio `dx-public` del Harbor de HCL (a diferencia de los charts e
+imágenes de DX, que necesitan tus credenciales de `hclcr.io`). Si tu clúster solo descarga de un
+espejo privado, copia allí las dos imágenes y ajusta `bundle.image`, `dxclient.image` y
+`job.imagePullSecrets`.
+
 **1. Credenciales de un usuario de DX** con acceso de Editor a la *Script Application Library*
 (fuera de un laboratorio, un usuario técnico, no `wpsadmin`). Vale cualquier namespace; el Job solo
 habla con DX por HTTPS:
@@ -65,16 +71,22 @@ kubectl -n dx-shared create secret generic scriptapp-dx-ca --from-file=ca.crt=dx
 ```
 
 **3. Lee la licencia de DXClient** (una licencia de HCL para programas sin garantía) y acéptala con
-`dxclient.acceptLicense=true`: el chart no se instala hasta que lo hagas. Para leerla:
+`dxclient.acceptLicense=true`: el chart no se instala hasta que lo hagas. Para leerla, con Docker
+o, sin él, en un pod de usar y tirar:
 
 ```bash
 docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bin/dxclient accept-license
 ```
 
-**4. Instalar:**
+```bash
+kubectl -n dx-shared run dxclient-license --rm -i --restart=Never --image=hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 --command -- /dxclient/bin/dxclient accept-license
+```
+
+**4. Instalar.** `helm upgrade --install` instala el release si todavía no existe y lo actualiza si
+ya existe, así que el mismo comando vale para la primera vez y para todas las siguientes:
 
 ```bash
-helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.0 \
+helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.1 \
   -n dx-shared \
   --set dx.host=dx.example.com \
   --set dx.credentialsSecret=scriptapp-dx \
@@ -101,8 +113,8 @@ la versión desplegada.
 **7. Actualizarla:** publica una imagen de bundle nueva (versión nueva de la app) y haz upgrade:
 
 ```bash
-helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.0 -n dx-shared \
-  --reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.1
+helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.1 -n dx-shared \
+  --reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:<new version>
 ```
 
 **8. Desinstalar:** `helm uninstall hello-dx -n dx-shared` borra el chart, **no la app de WCM**
@@ -130,7 +142,7 @@ dxclient undeploy-scriptapplication --dxProtocol https --hostname dx.example.com
 | `scriptApp.name` | `europesip-hello-dx` | Nombre del contenido en WCM: la clave que convierte un push en actualización. No lo cambies tras la primera instalación |
 | `scriptApp.title` | `Hello DX` | Título que se ve en DX |
 | `scriptApp.siteArea` | `Script Application Library/Script Applications/` | Dónde se crea |
-| `bundle.image` | `ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.0` | La app que se sube |
+| `bundle.image` | `ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:1.0.2` | La app que se sube |
 | `dxclient.image` | `hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404` | DXClient, público en el Harbor de HCL |
 | `job.waitForDxSeconds` | `600` | Cuánto esperar a DX antes del push |
 
@@ -170,6 +182,9 @@ El chart es genérico: no tiene nada específico de Hello DX.
 - **Mismo origen, sin secretos.** La app llama a DX con URLs relativas (`/wps/mycontenthandler/...`):
   el navegador envía la cookie de sesión del usuario y DX aplica sus permisos. La lógica que necesite
   secretos o privilegios va a un servicio de backend, no a la Script Application.
+- **WCM REST v2 devuelve unos textos como cadena y otros como `{lang, value}`**, incluso en la misma
+  lista (títulos de bibliotecas en CF239). Lee las dos formas (ver `text()` en
+  [app/src/dx.ts](app/src/dx.ts)): React falla con el objeto.
 - **Una instancia por página** en Hello DX: se monta en un ID de elemento fijo. Para varias
   instancias en la misma página, usa el token de namespace de DX en el ID.
 
