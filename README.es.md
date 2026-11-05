@@ -91,7 +91,7 @@ kubectl -n dx-shared run dxclient-license --rm -i --restart=Never --image=hclcr.
 ya existe, así que el mismo comando vale para la primera vez y para todas las siguientes:
 
 ```bash
-helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.3 \
+helm upgrade --install hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.4 \
   -n dx-shared \
   --set dx.host=dx.example.com \
   --set dx.credentialsSecret=scriptapp-dx \
@@ -127,7 +127,7 @@ chart nuevo. Con `--reuse-values` a secas se conservan también los valores por 
 anterior**, y la app no cambiaría. Para subir una versión concreta de la app con el mismo chart:
 
 ```bash
-helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.3 -n dx-shared \
+helm upgrade hello-dx oci://ghcr.io/europesip/charts/hcl-dx-scriptapp --version 0.1.4 -n dx-shared \
   --reset-then-reuse-values --set bundle.image=ghcr.io/europesip/hcl-dx-scriptapp-helm/europesip-hello-dx:<new version>
 ```
 
@@ -185,6 +185,9 @@ El chart es genérico: no tiene nada específico de Hello DX.
   el bundle (*code splitting*) o sirve los recursos grandes desde DAM.
 - **DXClient escribe "Content push was successful" aunque DX rechace el contenido.** Su código de
   salida y la respuesta de DX (`"status":"error"`) sí son correctos: el Job comprueba los dos.
+- **DX puede responder antes de que WCM esté listo.** Justo después de un `helm upgrade` de DX,
+  `/wps/portal` responde mientras WCM todavía devuelve "Service Unavailable": el Job reintenta esos
+  errores temporales (5 intentos, cada 20 s) y falla al momento con cualquier otro error.
 - **Las credenciales no van en la línea de comandos.** DXClient avisa de que sus líneas de comandos
   acaban en los logs del contenedor, así que el Job las escribe en el fichero de configuración de
   DXClient.

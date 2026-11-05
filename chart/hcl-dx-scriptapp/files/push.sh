@@ -39,12 +39,23 @@ until node -e 'fetch(process.argv[1], { redirect: "manual" }).then(r => process.
 done
 
 # 5. Push: creates the app the first time, updates the same WCM item afterwards
+# DX may answer /wps/portal while WCM is still starting (seen right after a "helm upgrade" of DX:
+# "Service Unavailable"). Those temporary errors are retried; any other error fails at once.
 log "pushing '$APP_NAME' to $APP_SITE_AREA"
-rc=0
-./bin/dxclient deploy-scriptapplication push \
-  -wcmSiteArea "$APP_SITE_AREA" -wcmContentName "$APP_NAME" -wcmContentTitle "$APP_TITLE" \
-  -contentRoot "$APP_DIR" -mainHtmlFile "$APP_MAIN_HTML" > /tmp/push.log 2>&1 || rc=$?
-cat /tmp/push.log
+attempt=1
+while :; do
+  rc=0
+  ./bin/dxclient deploy-scriptapplication push \
+    -wcmSiteArea "$APP_SITE_AREA" -wcmContentName "$APP_NAME" -wcmContentTitle "$APP_TITLE" \
+    -contentRoot "$APP_DIR" -mainHtmlFile "$APP_MAIN_HTML" > /tmp/push.log 2>&1 || rc=$?
+  cat /tmp/push.log
+  if [ "$rc" -ne 0 ] && [ "$attempt" -lt "${PUSH_ATTEMPTS:-5}" ] \
+     && grep -qiE "Service Unavailable|Bad Gateway|Gateway Timeout|ECONNRESET|ECONNREFUSED|socket hang up" /tmp/push.log; then
+    log "DX is not ready yet (attempt $attempt): retrying in 20 s"
+    attempt=$((attempt + 1)); sleep 20; continue
+  fi
+  break
+done
 # DXClient prints "Content push was successful" even when DX rejects the content: trust the exit
 # code and the "status" of DX's answer, not that line.
 if [ "$rc" -ne 0 ] || ! grep -q '"status":"success"' /tmp/push.log; then
