@@ -19,6 +19,11 @@ Contiene:
 | [app/Dockerfile](app/Dockerfile) | La **imagen del bundle**: una imagen mínima que solo lleva la aplicación compilada |
 | [chart/hcl-dx-scriptapp](chart/hcl-dx-scriptapp) | El **chart de Helm**: un Job que sube la aplicación a DX con DXClient |
 
+![Hello DX en HCL DX Compose CF239](docs/hello-dx.png)
+
+La misma página muestra 23 bibliotecas a `wpsadmin` y 21 a un usuario normal del LDAP de los labs:
+la app no tiene lógica de permisos propia, DX aplica los del usuario que ha iniciado sesión.
+
 Es un ejemplo, no un producto, y no es software de HCL. Probado en HCL DX Compose CF239 (DXClient
 `v95_CF239_20261103-1404`).
 

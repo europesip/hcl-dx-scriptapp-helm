@@ -18,6 +18,11 @@ It contains:
 | [app/Dockerfile](app/Dockerfile) | The **bundle image**: a tiny image that only carries the built app |
 | [chart/hcl-dx-scriptapp](chart/hcl-dx-scriptapp) | The **Helm chart**: a Job that pushes the app to DX with DXClient |
 
+![Hello DX in HCL DX Compose CF239](docs/hello-dx.png)
+
+The same page shows 23 libraries to `wpsadmin` and 21 to a regular LDAP user of the labs: the app
+has no permission logic of its own, DX applies the signed-in user's.
+
 It is an example, not a product, and it is not HCL software. Tested on HCL DX Compose CF239
 (DXClient `v95_CF239_20261103-1404`).
 
