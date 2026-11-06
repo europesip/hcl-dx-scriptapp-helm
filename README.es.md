@@ -194,8 +194,9 @@ afterPush:
   env: [{ name: PAGES_PARENT, value: ibm.portal.Home }]
 ```
 
-Está pensado para usarse como **subchart** de una aplicación con varias Script Applications (como
-ÓRBITA). Igual que con `scriptApp.name`, no renombres una app después de su primera instalación.
+Está pensado para usarse como **subchart** de una aplicación con varias Script Applications:
+[ÓRBITA](https://github.com/europesip/orbita) lo usa para subir sus seis apps y crear sus páginas (Lab 5 de los
+[labs de HCL DX Compose](https://github.com/europesip/hcl-dx-compose-labs)). Igual que con `scriptApp.name`, no renombres una app después de su primera instalación.
 
 ## Lo que hemos aprendido (DX Compose CF239)
 
