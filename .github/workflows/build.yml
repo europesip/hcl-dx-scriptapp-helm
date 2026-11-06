@@ -100,6 +100,12 @@ jobs:
           ! helm template t $C --set dx.host=x --set dx.credentialsSecret=s 2>/dev/null
           ! helm template t $C --set dxclient.acceptLicense=true 2>/dev/null
           sh -n $C/files/push.sh
+          # 0.2: several apps and the after-push script; an app without path must be refused
+          helm template t $C --set dx.host=x --set dx.credentialsSecret=s --set dxclient.acceptLicense=true \
+            --set 'apps[0].name=a' --set 'apps[0].title=A' --set 'apps[0].path=a' \
+            --set-json 'afterPush={"configMap":"{{ .Release.Name }}-pages"}' | grep -q 'name: t-pages'
+          ! helm template t $C --set dx.host=x --set dx.credentialsSecret=s --set dxclient.acceptLicense=true \
+            --set 'apps[0].name=a' --set 'apps[0].title=A' 2>/dev/null
 
       - name: Publish (tags only, and only a chart version that is not published yet)
         if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/chart-v')

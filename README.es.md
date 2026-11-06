@@ -173,6 +173,30 @@ Todos en [values.yaml](chart/hcl-dx-scriptapp/values.yaml).
 
 El chart es genérico: no tiene nada específico de Hello DX.
 
+## Varias Script Applications en una release (chart 0.2.0)
+
+El chart **0.2.0** añade dos valores opcionales. Sin ellos hace exactamente lo mismo que el 0.1.4,
+así que los comandos de arriba (fijados a `--version 0.1.4`) siguen funcionando, y puedes volver al
+0.1.4 cuando quieras con `helm upgrade ... --version 0.1.4`.
+
+- **`apps`**: varias apps de **una sola imagen bundle**, cada una en su carpeta de `bundle.path`. El
+  Job las sube una tras otra; entonces se ignora `scriptApp`.
+- **`afterPush`**: un script tuyo (en un ConfigMap) que el mismo Job ejecuta después de todos los
+  push, con DXClient ya configurado, por ejemplo para crear las páginas con XMLAccess. Recibe
+  `APP_IDS_FILE`, una línea por app: `<nombre><TAB><ID del contenido en WCM>`.
+
+```yaml
+apps:
+  - { name: orbita-fichaje,    title: "ÓRBITA · Fichaje",    path: fichaje }
+  - { name: orbita-vacaciones, title: "ÓRBITA · Vacaciones", path: vacaciones }
+afterPush:
+  configMap: "{{ .Release.Name }}-pages"     # lo crea tu chart padre
+  env: [{ name: PAGES_PARENT, value: ibm.portal.Home }]
+```
+
+Está pensado para usarse como **subchart** de una aplicación con varias Script Applications (como
+ÓRBITA). Igual que con `scriptApp.name`, no renombres una app después de su primera instalación.
+
 ## Lo que hemos aprendido (DX Compose CF239)
 
 - **Un push publica al momento.** La app pasa a producción en todas las páginas que la usan, sin

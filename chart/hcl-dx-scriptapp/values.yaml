@@ -1,6 +1,9 @@
-# hcl-dx-scriptapp: deploys ONE Script Application to HCL DX with DXClient.
-# Every "helm install" / "helm upgrade" runs a Job (Helm hook) that pushes the app into WCM:
-# the first time it creates it, the next times it updates the same content (same WCM ID).
+# hcl-dx-scriptapp: deploys Script Applications to HCL DX with DXClient.
+# Every "helm install" / "helm upgrade" runs a Job (Helm hook) that pushes the apps into WCM:
+# the first time it creates them, the next times it updates the same content (same WCM ID).
+#
+# One app (scriptApp, as in chart 0.1.x) or several apps from the same bundle image (apps, new in
+# 0.2.0). With "apps" empty and no "afterPush", chart 0.2.x does exactly what 0.1.4 did.
 
 # Run the push. Set it to false in environments that receive the app by WCM syndication
 # (for example production): pushing there too would create a second, different content item.
@@ -14,6 +17,27 @@ scriptApp:
   title: Hello DX
   siteArea: "Script Application Library/Script Applications/"
   mainHtmlFile: index.html
+
+# Several Script Applications from ONE bundle image, each one in its own folder of bundle.path.
+# When this list is not empty, "scriptApp" above is ignored. Per app: name and title (required),
+# path (folder inside bundle.path, required), mainHtmlFile and siteArea (default: scriptApp's).
+# As with scriptApp.name, do not rename an app after its first install.
+apps: []
+#  - name: orbita-fichaje
+#    title: "ÓRBITA · Fichaje"
+#    path: fichaje
+#  - name: orbita-vacaciones
+#    title: "ÓRBITA · Vacaciones"
+#    path: vacaciones
+
+# Optional script run by the same Job after ALL the pushes succeeded, in the DXClient container
+# (working directory /dxclient, DXClient already configured with dx.*), e.g. to create pages with
+# XMLAccess. It gets APP_IDS_FILE: one line per app, "<name><TAB><WCM content ID>".
+afterPush:
+  # Name of an existing ConfigMap with the script. Templated: "{{ .Release.Name }}-pages" works.
+  configMap: ""
+  key: after-push.sh
+  env: []                    # extra environment variables for the script (list of EnvVar)
 
 # OCI image that only carries the BUILT app (the "dist" folder of npm run build) in "path".
 # Built by CI (see app/Dockerfile); its tag is the app version. Needs "cp" (busybox base).

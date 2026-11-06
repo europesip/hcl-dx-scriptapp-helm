@@ -4,6 +4,7 @@
 {{- if not .Values.dxclient.acceptLicense }}
 {{- fail "dxclient.acceptLicense must be true: read the DXClient license and accept it (see values.yaml)" }}
 {{- end }}
+{{- $afterPush := tpl (.Values.afterPush.configMap | default "") . }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -51,6 +52,12 @@ spec:
             secretName: {{ .Values.dx.caSecret }}
             items: [{ key: ca.crt, path: ca.crt }]
         {{- end }}
+        {{- if $afterPush }}
+        - name: after-push
+          configMap:
+            name: {{ $afterPush }}
+            defaultMode: 0555
+        {{- end }}
       initContainers:
         # 1. Copy the built app out of the bundle image
         - name: bundle
@@ -86,6 +93,24 @@ spec:
             - { name: APP_TITLE, value: {{ .Values.scriptApp.title | quote }} }
             - { name: APP_SITE_AREA, value: {{ .Values.scriptApp.siteArea | quote }} }
             - { name: APP_MAIN_HTML, value: {{ .Values.scriptApp.mainHtmlFile | quote }} }
+            {{- with .Values.apps }}
+            {{- $apps := list }}
+            {{- range $i, $a := . }}
+            {{- $apps = append $apps (dict
+                  "name" (required (printf "apps[%d].name is required" $i) $a.name)
+                  "title" (required (printf "apps[%d].title is required" $i) $a.title)
+                  "path" (required (printf "apps[%d].path is required (its folder in bundle.path)" $i) $a.path)
+                  "mainHtmlFile" ($a.mainHtmlFile | default $.Values.scriptApp.mainHtmlFile)
+                  "siteArea" ($a.siteArea | default $.Values.scriptApp.siteArea)) }}
+            {{- end }}
+            - { name: APPS_JSON, value: {{ toJson $apps | quote }} }
+            {{- end }}
+            {{- if $afterPush }}
+            - { name: AFTER_PUSH, value: {{ printf "/after-push/%s" .Values.afterPush.key | quote }} }
+            {{- with .Values.afterPush.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- end }}
             - { name: WAIT_FOR_DX_SECONDS, value: {{ .Values.job.waitForDxSeconds | quote }} }
             - { name: ACCEPT_LICENSE, value: "true" }
             - name: DX_USERNAME
@@ -103,6 +128,9 @@ spec:
             - { name: push, mountPath: /push }
             {{- if .Values.dx.caSecret }}
             - { name: dx-ca, mountPath: /dx-ca, readOnly: true }
+            {{- end }}
+            {{- if $afterPush }}
+            - { name: after-push, mountPath: /after-push, readOnly: true }
             {{- end }}
           resources: {{- toYaml .Values.job.resources | nindent 12 }}
 {{- end }}

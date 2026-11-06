@@ -1,11 +1,23 @@
 {{- if .Values.deploy }}
+{{- if .Values.apps }}
+{{ len .Values.apps }} Script Applications pushed to {{ .Values.dx.host }} by the Job
+{{ include "scriptapp.fullname" . }}-push ({{ .Values.bundle.image }}):
+{{- range .Values.apps }}
+  - "{{ .title }}" ({{ .name }})
+{{- end }}
+{{- else }}
 Script Application "{{ .Values.scriptApp.name }}" pushed to {{ .Values.dx.host }} by the Job
 {{ include "scriptapp.fullname" . }}-push ({{ .Values.bundle.image }}).
+{{- end }}
 
   Push log:   kubectl -n {{ .Release.Namespace }} logs job/{{ include "scriptapp.fullname" . }}-push
+{{- if .Values.afterPush.configMap }}
+  It also ran the after-push script of ConfigMap {{ tpl .Values.afterPush.configMap . }}.
+{{- else }}
 
 The first time, add it to a page: Site Manager > edit the page > add a Script Application >
-"{{ .Values.scriptApp.title }}". Later upgrades update it in place on every page that uses it.
+"{{ if .Values.apps }}<title>{{ else }}{{ .Values.scriptApp.title }}{{ end }}". Later upgrades update it in place on every page that uses it.
+{{- end }}
 {{- else }}
 deploy=false: no push in this environment (the app is expected to arrive by WCM syndication).
 {{- end }}
